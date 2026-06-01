@@ -1,45 +1,93 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
+import React from 'react';
+import { NavigationContainer, LinkingOptions } from '@react-navigation/native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
+import { AuthProvider, useAuth } from './src/context/AuthContext';
+import { ThemeProvider } from './src/context/ThemeContext';
+import AuthStack from './src/navigation/AuthStack';
+import MainTabs from './src/navigation/MainTabs';
+import SplashScreen from './src/screens/SplashScreen';
+import { DEEP_LINK_SCHEME } from './src/config';
 
-import { NewAppScreen } from '@react-native/new-app-screen';
-import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
-import {
-  SafeAreaProvider,
-  useSafeAreaInsets,
-} from 'react-native-safe-area-context';
+import { Linking, StyleSheet } from 'react-native';
 
-function App() {
-  const isDarkMode = useColorScheme() === 'dark';
+// ── Deep Link Configuration ───────────────────────────────────────────────────
+
+const linking: LinkingOptions<{}> = {
+  prefixes: [`${DEEP_LINK_SCHEME}://`],
+  config: {
+    screens: {
+      MainTabs: {
+        screens: {
+          Home: 'home',
+          Scan: 'scan',
+        },
+      },
+      DevCardView: 'u/:username',
+    },
+  },
+};
+
+// ── App Content ───────────────────────────────────────────────────────────────
+
+function AppContent() {
+  const { isAuthenticated, isLoading, login } = useAuth();
+
+  React.useEffect(() => {
+    const handleDeepLink = (event: { url: string }) => {
+      try {
+        const url = new URL(event.url);
+        const hashParams = new URLSearchParams(url.hash.replace(/^#/, ''));
+        const token = url.searchParams.get('token') || hashParams.get('token');
+        if (token) {
+          login(token);
+        }
+      } catch (error) {
+        console.error('Deep link parse error:', error);
+      }
+    };
+
+    const subscription = Linking.addEventListener('url', handleDeepLink);
+
+    Linking.getInitialURL().then((url) => {
+      if (url) handleDeepLink({ url });
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [login]);
+
+  if (isLoading) {
+    return <SplashScreen />;
+  }
 
   return (
-    <SafeAreaProvider>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <AppContent />
-    </SafeAreaProvider>
+    <NavigationContainer linking={linking}>
+      {isAuthenticated ? <MainTabs /> : <AuthStack />}
+    </NavigationContainer>
   );
 }
 
-function AppContent() {
-  const safeAreaInsets = useSafeAreaInsets();
+// ── Root ───────────────────────────────────────────────────────────────────────
 
+export default function App() {
   return (
-    <View style={styles.container}>
-      <NewAppScreen
-        templateFileName="App.tsx"
-        safeAreaInsets={safeAreaInsets}
-      />
-    </View>
+    <GestureHandlerRootView style={styles.gestureRoot}>
+      <SafeAreaProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <BottomSheetModalProvider>
+              <AppContent />
+            </BottomSheetModalProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  gestureRoot: { flex: 1 },
 });
-
-export default App;
