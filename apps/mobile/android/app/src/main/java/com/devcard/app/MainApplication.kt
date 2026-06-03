@@ -1,4 +1,4 @@
-package com.rntest
+package com.devcard.app
 
 import android.app.Application
 import com.facebook.react.PackageList
