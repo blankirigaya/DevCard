@@ -1,63 +1,111 @@
-# Android
+# DevCard Android
 
-Android native project for the DevCard React Native mobile app.
+Native Android project for the DevCard React Native app.
 
-## Prerequisites
+Use this folder for Android-specific Gradle builds, native configuration, emulator installs, and troubleshooting. For normal development, run commands from `apps/mobile` unless a command below says otherwise.
 
-- Node.js `>= 22.11.0`
-- Android Studio with Android SDK and emulator installed
-- Java version supported by the installed Android Gradle Plugin
-- Dependencies installed from `apps/mobile` with npm
+## Quick Start
 
-## Run On Android
-
-From `apps/mobile`, start Metro in one terminal:
+Start Metro from `apps/mobile`:
 
 ```cmd
 npx react-native start --reset-cache
 ```
 
-In a second terminal, run the app:
+Open a second terminal and run the Android app:
 
 ```cmd
 cd /d D:\DC\apps\mobile
 npx react-native run-android -- --active-arch-only
 ```
 
-`--active-arch-only` keeps local emulator builds faster by building only the active emulator/device architecture.
+`--active-arch-only` builds only the connected emulator/device architecture, which is much faster during local development.
 
-## Gradle Commands
+## Requirements
 
-Run these from `apps/mobile/android`:
+- Node.js `>= 22.11.0`
+- Android Studio with Android SDK and emulator support
+- Java version compatible with the Android Gradle Plugin used by this project
+- npm dependencies installed from `apps/mobile`
+- An Android emulator running, or a physical device connected with USB debugging enabled
+
+Install mobile dependencies from `apps/mobile`:
 
 ```cmd
-gradlew.bat app:packageDebug --stacktrace -PreactNativeArchitectures=x86_64
+npm install --legacy-peer-deps
 ```
+
+## Useful Gradle Commands
+
+Run these from `apps/mobile/android`.
+
+Build a debug APK:
+
+```cmd
+gradlew.bat app:packageDebug -PreactNativeArchitectures=x86_64
+```
+
+Install the debug build on a connected emulator/device:
 
 ```cmd
 gradlew.bat app:installDebug -PreactNativeArchitectures=x86_64
 ```
 
-The project currently sets `reactNativeArchitectures=x86_64` in `gradle.properties` for faster local Windows emulator builds. Use a CLI override when building for another device architecture, for example:
-
-```cmd
-gradlew.bat app:packageDebug -PreactNativeArchitectures=arm64-v8a
-```
-
-## Troubleshooting
-
-If Metro reports `ENOENT` for `D:\packages`, check `apps/mobile/metro.config.js`. The monorepo root should resolve to `D:\DC`, not `D:\`.
-
-If Gradle fails at `:app:packageDebug`, rerun with `--stacktrace`:
+Get detailed output for a failing build:
 
 ```cmd
 gradlew.bat app:packageDebug --stacktrace -PreactNativeArchitectures=x86_64
 ```
 
-If Android builds are very slow, avoid building all ABIs during local development. Use `--active-arch-only` through React Native CLI or pass `-PreactNativeArchitectures=x86_64` to Gradle.
+## Architecture Builds
+
+`gradle.properties` currently sets:
+
+```properties
+reactNativeArchitectures=x86_64
+```
+
+This keeps Windows emulator builds smaller and faster. Override it when targeting another device architecture:
+
+```cmd
+gradlew.bat app:packageDebug -PreactNativeArchitectures=arm64-v8a
+```
+
+Use all common Android ABIs only when needed:
+
+```cmd
+gradlew.bat app:packageDebug -PreactNativeArchitectures=armeabi-v7a,arm64-v8a,x86,x86_64
+```
+
+## Troubleshooting
+
+### Metro Watches `D:\packages`
+
+If Metro reports `ENOENT` for `D:\packages`, check `apps/mobile/metro.config.js`. The monorepo root should resolve to `D:\DC`, not `D:\`.
+
+### Gradle Fails At `:app:packageDebug`
+
+Rerun the package task with `--stacktrace` so the real error appears:
+
+```cmd
+gradlew.bat app:packageDebug --stacktrace -PreactNativeArchitectures=x86_64
+```
+
+### Builds Are Slow
+
+Use one of these faster local options:
+
+- `npx react-native run-android -- --active-arch-only`
+- `gradlew.bat app:packageDebug -PreactNativeArchitectures=x86_64`
+
+Avoid building every ABI unless you are preparing a broader test or release build.
+
+### Windows Long Path Errors
 
 If Windows reports paths longer than 260 characters, enable long paths from an Administrator PowerShell:
 
 ```powershell
 New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Value 1 -PropertyType DWORD -Force
 ```
+
+Restart the terminal after changing this setting.
